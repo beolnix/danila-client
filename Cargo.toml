@@ -1,0 +1,13 @@
+[package]
+name = "danila-client"
+version = "0.1.0"
+authors = ["Danila <danila.atmakin@auto1.com>"]
+edition = "2018"
+build = "build.rs"
+
+[dependencies]
+libc = "0.2.0"
+
+[build-dependencies]
+pkg-config = "^0.3.9"
+gcc = "0.3"
