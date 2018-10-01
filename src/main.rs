@@ -1,27 +1,26 @@
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
+
 extern crate libc;
+extern crate tokio;
 
-use std::ffi::CString;
-use libc::c_void;
-use std::ptr;
-use std::env;
+extern crate futures;
+extern crate bytes;
+extern crate tokio_timer;
 
-extern {
-    fn da_initialize(danilaApp: &DanilaApp) -> libc::c_void;
-    fn da_run(danilaApp: &DanilaApp);
-    fn da_joke(danilaApp: DanilaApp);
-}
 
-#[repr(C)]
-struct DanilaApp {
-}
+
+mod client;
+use self::client::DanilaClient;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let mut app = DanilaApp{};
-    unsafe {
-        app = std::mem::uninitialized();
-        da_initialize(&app);
-        da_run(&app);
-    }
+    let client = DanilaClient::init();
+    let future = client.make_future_for_status_checks();
 
+    tokio::run(future);
 }
+
+
+
