@@ -10,8 +10,6 @@ extern crate futures;
 extern crate bytes;
 extern crate tokio_timer;
 
-
-
 mod client;
 use self::client::DanilaClient;
 

@@ -8,7 +8,7 @@ use std::os::raw::c_char;
 use hyper::Client;
 use hyper::{Response, Body};
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::futures::{Future, Stream};
 use crate::futures::future::ok;
@@ -26,7 +26,8 @@ pub struct AlexaWrapper {
 }
 
 pub struct DanilaClient {
-    wrapper: Arc<&'static AlexaWrapper>
+    wrapper: Arc<&'static AlexaWrapper>,
+    lock: Arc<Mutex<u32>>
 }
 
 impl DanilaClient {
@@ -48,39 +49,37 @@ impl DanilaClient {
         }
 
         return DanilaClient {
-            wrapper: Arc::new(raw_ptr)
+            wrapper: Arc::new(raw_ptr),
+            lock: Arc::new(Mutex::new(0))
         }
     }
 
     pub fn make_future_for_status_checks(&self) -> Box<Future<Item=(), Error=()> + Send> {
-        return make_future_for_status_check(self.wrapper.clone());
+        return make_future_for_status_check(self.lock.clone(), self.wrapper.clone());
 
     }
 
 }
 
-fn make_future_for_status_check(wrapper: Arc<&'static AlexaWrapper>) -> Box<Future<Item=(), Error=()> + Send> {
+fn make_future_for_status_check(lock: Arc<Mutex<u32>>, wrapper: Arc<&'static AlexaWrapper>) -> Box<Future<Item=(), Error=()> + Send> {
 
     let client = Client::new();
     let url = "http://auto1.danila.app/rest-api/status?city=BERLIN".parse::<hyper::Uri>().unwrap();
     let local_ptr = wrapper.clone();
-    let local_ptr_2 = wrapper.clone();
+    let _lock = lock.clone();
     let future_response = client
         .get(url)
         .and_then( consume_body )
         .and_then( move |raw_body| {
             if is_notification_available(&raw_body) {
                 println!("notifications available, ask to deliver.");
-                deliver_notification(local_ptr.clone());
+                deliver_notification(local_ptr.clone(), _lock.clone());
                 sleep_ms(20000);
             } else {
                 println!("no notifications found");
                 sleep_ms(1000);
             }
-
-            Ok(())
-        }).and_then(move |()| {
-            let task = make_future_for_status_check(local_ptr_2.clone());
+            let task = make_future_for_status_check(_lock.clone(), local_ptr.clone());
             tokio::spawn(task);
 
             Ok(())
@@ -126,7 +125,13 @@ fn is_notification_available(body: &String) -> bool {
     return result;
 }
 
-fn deliver_notification( wrapper: Arc<&AlexaWrapper>) {
+fn deliver_notification( wrapper: Arc<&AlexaWrapper>, lock: Arc<Mutex<u32>>) {
+    let mut result = lock.try_lock();
+    while result.is_err() {
+        result = lock.try_lock();
+        println!("failed to aquiare lock, try again in 1s");
+        sleep_ms(1000);
+    }
     let c_to_ask = CString::new("/Users/dan.atmakin/dev/private/danila.app/info/ask_danila_to_deliver_notification-2.wav").unwrap();
     unsafe {
         da_mock_question(&wrapper, c_to_ask.as_ptr());
