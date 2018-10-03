@@ -10,15 +10,35 @@ extern crate futures;
 extern crate bytes;
 extern crate tokio_timer;
 
+
 mod client;
+mod args;
 use self::client::DanilaClient;
 
+extern crate rust_gpiozero;
+use rust_gpiozero::*;
+
+use std::thread;
+
+
 fn main() {
-    let client = DanilaClient::init();
+    let client_config = args::init_client_config();
+    let client = DanilaClient::init(client_config);
     let future = client.make_future_for_status_checks();
+
+    thread::spawn(move || {
+        let button = Button::new(17);
+        loop {
+            button.wait_for_press();
+            println!("button pressed");
+            client.tap_to_talk();
+        }
+    });
 
     tokio::run(future);
 }
+
+
 
 
 
