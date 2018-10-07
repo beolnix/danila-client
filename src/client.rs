@@ -79,16 +79,27 @@ impl DanilaClient {
             println!("failed to aquiare lock, try again in 500ms");
             sleep_ms(500);
         }
+        let data = result.unwrap();
         println!("got lock for tap to talk!");
 
-        let mut led = LED::new(23);
-        led.on();
+//        let mut led = LED::new(23);
+//        led.on();
 
         unsafe {
             da_tap(&self.wrapper);
         }
         sleep_ms(20000);
-        led.off();
+//        led.off();
+    }
+
+    pub fn run(&self) -> !{
+        unsafe {
+            da_run(&self.wrapper);
+        }
+
+        loop {
+            sleep_ms(1000);
+        }
     }
 
 }
@@ -167,15 +178,17 @@ fn deliver_notification( wrapper: Arc<&AlexaWrapper>, lock: Arc<Mutex<u32>>, que
         println!("failed to aquiare lock, try again in 1s");
         sleep_ms(1000);
     }
+    let data = result.unwrap();
     println!("got lock for notification delivery!");
-    let mut led = LED::new(23);
-    led.on();
+//    let mut led = LED::new(23);
+//    led.on();
     let c_to_ask = CString::new(question_file).unwrap();
     unsafe {
         da_mock_question(&wrapper, c_to_ask.as_ptr());
     }
     sleep_ms(20000);
-    led.off();
+       
+//    led.off();
 }
 
 
