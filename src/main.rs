@@ -6,20 +6,18 @@ extern crate serde_json;
 extern crate libc;
 extern crate tokio;
 
-extern crate futures;
 extern crate bytes;
+extern crate futures;
 extern crate tokio_timer;
 
-
-mod client;
 mod args;
+mod client;
 use self::client::DanilaClient;
 
 extern crate rust_gpiozero;
 use rust_gpiozero::*;
 
 use std::thread;
-
 
 fn main() {
     let client_config = args::init_client_config();
@@ -39,8 +37,3 @@ fn main() {
 
     // tokio::run(future);
 }
-
-
-
-
-
